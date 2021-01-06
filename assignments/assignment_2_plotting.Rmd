@@ -46,7 +46,9 @@ library(viridis)
 myplot = expedition_count %>% 
   ggplot(aes(x=reorder(peak_name, n), n, fill=factor(season))) +
   geom_bar(stat = "identity") +
-  coord_flip() + scale_fill_viridis(discrete = TRUE ) + theme_light()
+  coord_flip() + scale_fill_viridis(discrete = TRUE ) + theme_light()+
+  labs(title = "The 15 most popular peaks stacked by season of expedition", y = "Number of expeditions", x = "", fill = "season") +
+  theme(legend.position = "bottom")
 
 myplot
 
@@ -64,6 +66,30 @@ Notes:
 -   The line size is 1.2, the colors are from the brewer "Dark2" palette. The theme is set to minimal.
 
 ```{r}
+library(tidytuesdayR)
+library(scale)
+phd_data = tt_load("2019-02-19")
+phd_data = phd_data$phd_by_field
+
+by_year = phd_data %>% 
+  na.omit() %>% 
+ group_by(broad_field, year) %>% 
+  summarize(phd_sum = sum(n_phds)) 
+
+phd_plot = by_year %>% 
+  ggplot(aes(x = year, y = phd_sum, color = broad_field)) +
+  geom_line(size=1.2) +
+  scale_x_continuous( labels= c("2008","2010","2012","2014","2016"), breaks = c(2008,2010,2012,2014,2016),limits = c(2008,2017))+
+  scale_y_continuous(label = comma) +
+  theme_minimal() +
+  ggtitle("Number of awarded Ph.D.-s in the US by year") +
+  labs(color = "Broad field") +
+  scale_color_brewer(palette = "Dark2") + 
+  theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank())
+
+phd_plot
 
 ```
 
@@ -78,5 +104,22 @@ Notes:
 -   The point size is 2, . The theme is set to light.
 
 ```{r}
+library(tidytuesdayR)
+commute_data = tt_load("2019-11-05")$commute
+commute_summary = commute_data %>% 
+  group_by(state_abb,mode, state_region) %>% 
+  summarize(total = sum(n)) %>% 
+  pivot_wider(names_from = mode, values_from = total)
 
+commute_plot = commute_summary %>% 
+  ggplot(aes(x = Walk, y = Bike, color = state_region, label = state_abb))+
+  geom_point(size = 2) +
+  geom_text(aes(label=state_abb),show.legend = F, colour = "black", check_overlap = T) +
+  scale_x_log10(labels = comma) +
+  scale_y_log10(labels = comma, limits = c(10^1,10^6), breaks = c(10^2, 10^3, 10^4, 10^5)) +
+  labs(title = "Number of people walking vs biking to work in each USA state", y = "Number of ppl walking to work (log N)", x = "Number of ppl biking to work (log N)", color = "State region") +
+  theme_light()
+  
+
+commute_plot
 ```
