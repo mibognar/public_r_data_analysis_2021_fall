@@ -59,6 +59,9 @@ In your discussion of the findings, briefly interpret the results of the above a
 Read the dataset used in this assignment. Pay attention to the extension of the datafile.
 
 ```{r}
+library(readxl)
+
+source_data <- read_xlsx("data/assignment_3_dataset.xlsx", sheet = 1)
 
 ```
 
@@ -69,6 +72,39 @@ Read the dataset used in this assignment. Pay attention to the extension of the 
 Run an exploratory data analysis (EDA) to investigate the dataset.
 
 ```{r}
+library(tidyverse)
+
+
+source_data %>% 
+summary()
+
+glimpse(source_data)
+
+# Plotting numeric variables
+ggplot(data=source_data, aes(x=pain))+geom_histogram()
+ggplot(data=source_data, aes(x=age))+geom_histogram()
+ggplot(data=source_data, aes(x=STAI_trait))+geom_histogram()
+ggplot(data=source_data, aes(x=pain_cat))+geom_histogram()
+ggplot(data=source_data, aes(x=cortisol_serum))+geom_histogram()
+ggplot(data=source_data, aes(x=cortisol_saliva))+geom_histogram()
+ggplot(data=source_data, aes(x=mindfulness))+geom_histogram()
+ggplot(data=source_data, aes(x=weight))+geom_histogram()
+ggplot(data=source_data, aes(x=IQ))+geom_histogram()
+ggplot(data=source_data, aes(x=household_income))+geom_histogram()
+
+
+source_data %>% 
+  group_by(sex) %>% 
+  summarize(mean(pain), median(pain), sd(pain))
+
+
+source_data %>% 
+  ggplot
+source_data %>% 
+  ggplot(aes(x=age, y=pain)) + geom_point()
+
+
+  
 
 ```
 
@@ -78,6 +114,17 @@ If you find values in the dataset during the EDA, that are not correct based on 
 
 ```{r}
 
+# pain data has one observarion that is out of the scale limits.
+# As it is not known what caused the wrong value (accidental '0' after a '5' value, or an improper report of a maximum pain value), I exclude the whole row
+
+source_data = source_data %>% 
+  filter(pain <= 10)
+
+#refactoring "woman" as "female" in sex variable
+
+source_data <- source_data %>% 
+  mutate(sex = replace(sex, sex=="woman","female"))
+  
 ```
 
 ### Model diagnostics
@@ -87,6 +134,10 @@ In order to test the more complex model for outliers and to test the assumptions
 
 ```{r}
 
+simple_model = lm(formula = pain ~ age + sex, data= source_data)
+
+summary(simple_model)
+
 ```
 
 #### Checking for influential outliers
@@ -95,6 +146,17 @@ Check for outlier values in the model.
 
 ```{r}
 
+plot(simple_model, 4)
+cook <- cooks.distance(simple_model)
+samplesize <- nrow(source_data)
+plot(cook, phc="*", cex=2)
+abline(h=4/samplesize, col="red")
+outliers = as.numeric(names(cook)[(cook>(4/samplesize))])
+
+cleaned_data = source_data
+
+cleaned_simple_model = lm(pain~age+sex, data = cleaned_data)
+summary(cleaned_simple_model)
 ```
 
 #### Checking assumptions
@@ -103,18 +165,30 @@ Check the normality assumption.
 
 ```{r}
 
+install.packages("olsrr")
+library(olsrr)
+plot(cleaned_simple_model,2)
+ols_plot_resid_hist(cleaned_simple_model)
+
+# The distribution seems fairly normal
 ```
 
 Check the linearity assumption.
 
 ```{r}
 
+plot(cleaned_simple_model,1)
+
+#Linearity assumption is not violated
 ```
 
 Check the homoscedasticty assumption (homogeneity of variance).
 
 ```{r}
 
+plot(cleaned_simple_model,3)
+
+#Variance is homogeneous
 ```
 
 Check the multicollinearity assumption.
@@ -126,7 +200,10 @@ https://statisticalhorizons.com/multicollinearity
 http://blog.minitab.com/blog/understanding-statistics/handling-multicollinearity-in-regression-analysis
 
 ```{r}
+library(car)
+vif(cleaned_simple_model)
 
+#Vif scores are not reaching any thresholds, we can assume that there is no multicollinearity
 ```
 
 ### Making decision based on model diagnostics

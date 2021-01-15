@@ -74,7 +74,12 @@ phd_data = phd_data$phd_by_field
 by_year = phd_data %>% 
   na.omit() %>% 
  group_by(broad_field, year) %>% 
-  summarize(phd_sum = sum(n_phds)) 
+  summarize(phd_sum = sum(n_phds))
+
+library(psych)
+library(pastecs)
+round(stat.desc(by_year$phd_sum,basic = F, norm = T), digits = 3)
+describe(by_year$phd_sum)
 
 phd_plot = by_year %>% 
   ggplot(aes(x = year, y = phd_sum, color = broad_field)) +
