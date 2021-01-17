@@ -1,11 +1,13 @@
 ---
 title: "Assignment 3: Model comparison"
-author: "Marton Kovacs"
+author: "Miklos Bognar"
 output: html_document
-editor_options: 
-  chunk_output_type: console
+
 ---
 
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
 In this lab assignment you are going to work with (simulated) data related to perioperative pain and its psychological and hormonal predictors. In the assignment you will assess the added benefit of including some psychological and hormonal predictors to the already established demographic predictors of pain.
 
 In this assignment you will set up a hierarchical regression model to predict postoperative pain after wisdom tooth surgery. 
@@ -58,10 +60,14 @@ In your discussion of the findings, briefly interpret the results of the above a
 
 Read the dataset used in this assignment. Pay attention to the extension of the datafile.
 
+### Loading required packages. (Some of them might need to be installed)
 ```{r}
 library(readxl)
+library(jtools)
+library(tidyverse)
+library(car)
 
-source_data <- read_xlsx("data/assignment_3_dataset.xlsx", sheet = 1)
+source_data <- read_xlsx("../data/assignment_3_dataset.xlsx", sheet = 1)
 
 ```
 
@@ -71,44 +77,40 @@ source_data <- read_xlsx("data/assignment_3_dataset.xlsx", sheet = 1)
 
 Run an exploratory data analysis (EDA) to investigate the dataset.
 
+### Exloring numeric and categorical variables we want to use in the model 
 ```{r}
-library(tidyverse)
-
-
 source_data %>% 
 summary()
 
 glimpse(source_data)
+```
 
-# Plotting numeric variables
+### Plotting numeric variables
+
+```{r}
 ggplot(data=source_data, aes(x=pain))+geom_histogram()
+#Impossible value, it needs to be dealt with
+```
+
+
+```{r}
 ggplot(data=source_data, aes(x=age))+geom_histogram()
 ggplot(data=source_data, aes(x=STAI_trait))+geom_histogram()
 ggplot(data=source_data, aes(x=pain_cat))+geom_histogram()
 ggplot(data=source_data, aes(x=cortisol_serum))+geom_histogram()
 ggplot(data=source_data, aes(x=cortisol_saliva))+geom_histogram()
 ggplot(data=source_data, aes(x=mindfulness))+geom_histogram()
-ggplot(data=source_data, aes(x=weight))+geom_histogram()
-ggplot(data=source_data, aes(x=IQ))+geom_histogram()
-ggplot(data=source_data, aes(x=household_income))+geom_histogram()
 
 
 source_data %>% 
   group_by(sex) %>% 
   summarize(mean(pain), median(pain), sd(pain))
 
-
-source_data %>% 
-  ggplot
-source_data %>% 
-  ggplot(aes(x=age, y=pain)) + geom_point()
-
-
-  
+# 'woman' value in a male-female variable
 
 ```
 
-#### Correct coding errors
+#### Correcting coding errors
 
 If you find values in the dataset during the EDA, that are not correct based on the provided descriptions of the variables of the dataset please correct them here.
 
@@ -128,15 +130,16 @@ source_data <- source_data %>%
 ```
 
 ### Model diagnostics
-#### Build the more complex model
+
+#### Building the more complex model
 
 In order to test the more complex model for outliers and to test the assumptions first build the model.
 
 ```{r}
 
-simple_model = lm(formula = pain ~ age + sex, data= source_data)
 
-summary(simple_model)
+complex_model <-lm(pain ~ age + sex + STAI_trait + pain_cat + cortisol_serum + cortisol_saliva + mindfulness, data = source_data)
+summary(complex_model)
 
 ```
 
@@ -146,17 +149,15 @@ Check for outlier values in the model.
 
 ```{r}
 
-plot(simple_model, 4)
-cook <- cooks.distance(simple_model)
+plot(complex_model, 4)
+cook <- cooks.distance(complex_model)
 samplesize <- nrow(source_data)
-plot(cook, phc="*", cex=2)
+plot(cook, cex=2)
 abline(h=4/samplesize, col="red")
 outliers = as.numeric(names(cook)[(cook>(4/samplesize))])
 
-cleaned_data = source_data
+cleaned_data = source_data[-outliers,]
 
-cleaned_simple_model = lm(pain~age+sex, data = cleaned_data)
-summary(cleaned_simple_model)
 ```
 
 #### Checking assumptions
@@ -165,10 +166,7 @@ Check the normality assumption.
 
 ```{r}
 
-install.packages("olsrr")
-library(olsrr)
-plot(cleaned_simple_model,2)
-ols_plot_resid_hist(cleaned_simple_model)
+plot(complex_model,2)
 
 # The distribution seems fairly normal
 ```
@@ -177,7 +175,7 @@ Check the linearity assumption.
 
 ```{r}
 
-plot(cleaned_simple_model,1)
+plot(complex_model,1)
 
 #Linearity assumption is not violated
 ```
@@ -186,7 +184,7 @@ Check the homoscedasticty assumption (homogeneity of variance).
 
 ```{r}
 
-plot(cleaned_simple_model,3)
+plot(complex_model,3)
 
 #Variance is homogeneous
 ```
@@ -200,10 +198,10 @@ https://statisticalhorizons.com/multicollinearity
 http://blog.minitab.com/blog/understanding-statistics/handling-multicollinearity-in-regression-analysis
 
 ```{r}
-library(car)
-vif(cleaned_simple_model)
 
-#Vif scores are not reaching any thresholds, we can assume that there is no multicollinearity
+vif(complex_model)
+
+#cortisol_serum and cortisol_saliva variables have very high VIF scores which is problematic 
 ```
 
 ### Making decision based on model diagnostics
@@ -211,6 +209,10 @@ vif(cleaned_simple_model)
 If based on the assumption tests you decide to drop a predictor variable you should do that here. Create your updated model.
 
 ```{r}
+# dropping cortisol variables as predictors, and using cleaned_data (without outliers)
+
+updated_complex_model <- lm(pain ~ sex + age + STAI_trait + pain_cat + mindfulness, data = cleaned_data)
+summary(updated_complex_model)
 
 ```
 
@@ -218,6 +220,13 @@ If based on the assumption tests you decide to drop a predictor variable you sho
 
 ```{r}
 
+plot(updated_complex_model, 4)
+updated_cook <- cooks.distance(updated_complex_model)
+samplesize <- nrow(cleaned_data)
+plot(updated_cook, cex=2)
+abline(h=4/samplesize, col="red")
+updated_outliers = as.numeric(names(updated_cook)[(updated_cook>(4/samplesize))])
+updated_outliers
 ```
 
 #### Checking assumptions of the updated model
@@ -226,24 +235,36 @@ Normality assumption
 
 ```{r}
 
+plot(updated_complex_model,2)
+
+#this seems pretty normal to me
 ```
 
 Linearity assumption
 
 ```{r}
 
+plot(updated_complex_model,1)
+
+#its also linear
 ```
 
 Homoscedasticty assumption (homogeneity of variance)
 
 ```{r}
 
+plot(updated_complex_model,3)
+
+#a little curve at the end but pretty much homogeneous
 ```
 
 Multicollinearity assumption
 
 ```{r}
 
+vif(updated_complex_model)
+
+#No multicollinearity
 ```
 
 ## Model comparison
@@ -251,18 +272,28 @@ Multicollinearity assumption
 Create the simple model and get the results of the model that needs to be reported based on the What to report section.
 
 ```{r}
+simple_model <- lm(pain ~ sex + age, data = cleaned_data)
+```
 
+### Reporting he simple model:
+```{r}
+summ(simple_model)
 ```
 
 Create the more complex model based on the results of the model diagnostics. Also, get the results that needs to be reported based on the What to report section.
 
+### Reporting the complex model
 ```{r}
+summ(updated_complex_model)
+summary(updated_complex_model)
+```
+The regression equation for the model is:
+__pain = 3.58 + 0.206 * sex + -0.08 + age + 0.058 * STAI_trait + 0.090 * pain_cat + -0.146 * mindfulness__
 
+### Model comparision
+```{r}
+anova(simple_model,updated_complex_model)
 ```
 
-Compare the two models.
-
-```{r}
-
-```
-
+The analysis of variance shows that there is significant difference between the two models. 
+Based on the difference between the adjusted R-squared values we can assume that the more complex model is better for predicting pain. 

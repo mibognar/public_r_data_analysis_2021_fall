@@ -1,10 +1,11 @@
 ---
 title: "Assignment 1: The cocktail bar (data transformation and manipulation)"
-author: "Tamas Nagy"
+author: "Miklos Bognar"
 output: html_document
 editor_options: 
   chunk_output_type: console
 ---
+
 
 # Skills needed to solve this assignment
 
@@ -15,8 +16,10 @@ editor_options:
 -   String manipulation (e.g. stringr)
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
 library(tidyverse)
+library(readr)
+library(stringr)
 ```
 
 # Background
@@ -32,7 +35,6 @@ Note: There are several different ways to solve these tasks, feel free to come u
 Read the cocktail dataset from: <https://github.com/nthun/cocktail-balance> You can also find the codebook there.
 
 ```{r}
-library(readr)
 dataset = read_tsv(url("https://github.com/nthun/cocktail-balance/raw/master/cocktail_data.tsv"))
 ```
 
@@ -41,7 +43,6 @@ dataset = read_tsv(url("https://github.com/nthun/cocktail-balance/raw/master/coc
 The ingredients are currently in a single cell for each cocktail. It would be better to put them in separate rows. Also, the variable should be cleaned of all quantities (e.g. 1/2 oz, 2 dashes, etc.), and the indicator of alcohol content (e.g. 47.3% abv). You will need to use this cleaned table in later tasks.
 
 ```{r}
-library(stringr)
 
 bad_apples = c("[:digit:]|oz|/|%|abv|dashes|drops|[[:punct:]]|bsp")
 new_dataset = dataset %>%
@@ -146,9 +147,6 @@ cheatsheet = new_dataset %>%
 
 ```
 
-```{r}
-
-```
 
 Congrats, the bar is now officially open!
 

@@ -1,6 +1,6 @@
 ---
 title: 'Assignment 2: Data visualization'
-author: "Tamas Nagy"
+author: "Miklos Bognar"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -17,9 +17,13 @@ You will have to create 3 plots based on the datasets and instructions detailed 
 -   Data visuzlization (ggplot2)
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, results = 'hide')
 library(tidyverse)
 library(tidytuesdayR)
+library(viridis)
+library(psych)
+library(scales)
+library(pastecs)
 ```
 
 ## Task 1: Climbing expeditions
@@ -31,8 +35,6 @@ The 2020-09-22 TidyTueday datasets are about climbing expeditions. From the thre
 -   The bar colors use the viridis palette and light theme.
 
 ```{r}
-with_palette(viridis)
-library(viridisLite)
 mydf = tt_load("2020-09-22")
 peaks = mydf$peaks
 expeditions = mydf$expeditions
@@ -41,17 +43,14 @@ expedition_count = expeditions %>%
   filter(peak_name != "Other") %>% 
   count(peak_name, season)
 
-
-library(viridis)
-myplot = expedition_count %>% 
+mountplot = expedition_count %>% 
   ggplot(aes(x=reorder(peak_name, n), n, fill=factor(season))) +
   geom_bar(stat = "identity") +
   coord_flip() + scale_fill_viridis(discrete = TRUE ) + theme_light()+
   labs(title = "The 15 most popular peaks stacked by season of expedition", y = "Number of expeditions", x = "", fill = "season") +
   theme(legend.position = "bottom")
 
-myplot
-
+mountplot
 
 ```
 
@@ -66,8 +65,6 @@ Notes:
 -   The line size is 1.2, the colors are from the brewer "Dark2" palette. The theme is set to minimal.
 
 ```{r}
-library(tidytuesdayR)
-library(scale)
 phd_data = tt_load("2019-02-19")
 phd_data = phd_data$phd_by_field
 
@@ -76,8 +73,6 @@ by_year = phd_data %>%
  group_by(broad_field, year) %>% 
   summarize(phd_sum = sum(n_phds))
 
-library(psych)
-library(pastecs)
 round(stat.desc(by_year$phd_sum,basic = F, norm = T), digits = 3)
 describe(by_year$phd_sum)
 
@@ -109,7 +104,6 @@ Notes:
 -   The point size is 2, . The theme is set to light.
 
 ```{r}
-library(tidytuesdayR)
 commute_data = tt_load("2019-11-05")$commute
 commute_summary = commute_data %>% 
   group_by(state_abb,mode, state_region) %>% 
